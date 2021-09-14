@@ -3,6 +3,7 @@ package com.ecomindo.onboarding.springjpawebf.data.jpa.web;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -26,32 +27,26 @@ public class SftpController {
 	FileService fileService;
 
 //	@ApiParam(allowMultiple=true) 
-	@RequestMapping(path = "/upload", method = RequestMethod.POST, 
+	@PostMapping(path = "/upload", 
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE, 
 			produces = MediaType.APPLICATION_JSON_VALUE)
-	public Flux<String> upload(@RequestPart(name = "file") Flux<FilePart> parts) {
+	public Mono<ResponseDTO> upload(@RequestPart(name = "file") Mono<FilePart> parts) {
 			return parts
-            .filter(part -> part instanceof FilePart) // only retain file parts
-            .ofType(FilePart.class) // convert the flux to MultipartFile
+					.filter(part -> part instanceof FilePart)
+	                .ofType(FilePart.class)
+	                .log()
             .flatMap(this::upload); // save each file and flatmap it to a flux of results
 	}
 	
-	private Mono<String> upload(FilePart file){
+	private Mono<ResponseDTO> upload(FilePart file){
 		try {
 			return fileService.upload(file);
 		} catch (Exception e) {
+			e.printStackTrace();
 			ResponseDTO response = new ResponseDTO();
 			response.setCode("500");
-			response.setMessage("Upload Failed");
-			e.printStackTrace();
-			ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-			try {
-				String json = ow.writeValueAsString(response);
-			} catch (JsonProcessingException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			return Mono.just("{\"code\":\"500\", \"message\":\"Unhandled error occured!\"}");
+			response.setMessage("Upload Failed: " + e.getMessage());
+			return Mono.just(response);
 		}
 	}
 

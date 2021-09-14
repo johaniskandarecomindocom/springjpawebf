@@ -7,5 +7,5 @@ import com.ecomindo.onboarding.springjpawebf.data.jpa.dto.ResponseDTO;
 import reactor.core.publisher.Mono;
 
 public interface FileService {
-	public Mono<String> upload(FilePart file) throws Exception;
+	public Mono<ResponseDTO> upload(FilePart file) throws Exception;
 }

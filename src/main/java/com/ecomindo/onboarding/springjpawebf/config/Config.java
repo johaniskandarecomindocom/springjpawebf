@@ -23,6 +23,9 @@ public class Config {
 	@Value("${spring.custom.sftpFolder}")
 	private String sftpFolder;
 	
+	@Value("${spring.custom.sftpServerfolder}")
+	private String sftpServerfolder;
+	
 	public String getSftpHost() {
 		return sftpHost;
 	}
@@ -63,4 +66,8 @@ public class Config {
 		this.sftpFolder = sftpFolder;
 	}
 	
+	public String getSftpServerfolder() {
+		return sftpServerfolder;
+	}
+
 }

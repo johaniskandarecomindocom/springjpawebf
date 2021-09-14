@@ -5,9 +5,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousByteChannel;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.file.StandardOpenOption;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,9 +21,6 @@ import org.springframework.stereotype.Service;
 import com.ecomindo.onboarding.springjpawebf.config.Config;
 import com.ecomindo.onboarding.springjpawebf.data.jpa.dto.ResponseDTO;
 import com.ecomindo.onboarding.springjpawebf.util.SftpUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 
 import reactor.core.publisher.Mono;
 
@@ -32,19 +31,18 @@ public class FileServiceImpl implements FileService {
 	Config config;
 
 	@Override
-	public Mono<String> upload(FilePart filePart) throws Exception {
+	public Mono<ResponseDTO> upload(FilePart filePart) throws Exception {
 		ResponseDTO response = new ResponseDTO();
 		try {
 			SftpUtil sftp = new SftpUtil(config.getSftpHost(), config.getSftpPort(), config.getSftpUsername(),
 					config.getSftpPassword(), config.getSftpFolder());
 
 	        System.out.printf("handling file upload {}\n", filePart.filename());
-
-	        response.setCode("200");
-			response.setMessage("Upload Success");
 	        // if a file with the same name already exists in a repository, delete and recreate it
 	        final String filename = filePart.filename();
-	        File file = new File(filename);
+	        final String localFilename = UUID.randomUUID().toString().concat("-").concat(filename);
+	        String localServerFilepath = config.getSftpServerfolder().concat("/").concat(localFilename);
+	        File file = new File(localServerFilepath);
 	        if (file.exists())
 	            file.delete();
 	        try {
@@ -56,9 +54,13 @@ public class FileServiceImpl implements FileService {
 	        try {
 	            // create an async file channel to store the file on disk
 	            final AsynchronousFileChannel fileChannel = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.WRITE);
-
+	            
 	            final CloseCondition closeCondition = new CloseCondition();
-
+	            final CloseCondition transferCondition = new CloseCondition();
+	            
+	            // for sftp checking
+	            transferCondition.onTaskSubmitted();
+	            
 	            // pointer to the end of file offset
 	            AtomicInteger fileWriteOffset = new AtomicInteger(0);
 	            // error signal
@@ -95,9 +97,21 @@ public class FileServiceImpl implements FileService {
 	                                try {
 	                                	System.out.println("closing after last part");
 	                                    fileChannel.close();
-	                                } catch (IOException ignored) {
-	                                    ignored.printStackTrace();
-	                                }
+	                                   
+	        	            			File f = new File(localServerFilepath);
+	        	                    	System.out.println("reading from " + localServerFilepath);
+	                					InputStream inputStream = new FileInputStream(f);
+	        	            			String sftpPath = config.getSftpFolder().concat("/").concat(filename);
+	        	                    	System.out.println("writing to sftp "+sftpPath);
+	        	            			sftp.sftpPutFromStream(inputStream, sftpPath);
+	        	                    	System.out.println("finihed writing to sftp"+sftpPath);	                        	                        
+	                                } catch (IOException e) {
+	        	                    	setResponseKO(response, "error on completion", e);
+	                                } catch (Exception e) {
+	        	                    	setResponseKO(response, "error on completion", e);
+									} finally {
+										transferCondition.onTaskCompleted();
+									}
 	                        }
 
 	                        @Override
@@ -118,14 +132,22 @@ public class FileServiceImpl implements FileService {
 	                        
 	            			String fileName = filePart.filename();
 	            			File f = new File(fileName);
+	                    	System.out.println("reading from " + fileName);
         					InputStream inputStream = new FileInputStream(f);
 	            			String sftpPath = config.getSftpFolder().concat("/").concat(fileName);
+	                    	System.out.println("writing to sftp "+sftpPath);
 	            			sftp.sftpPutFromStream(inputStream, sftpPath);
-	                        
-	                    } catch (IOException ignored) {
-	                    } catch (Exception e) {
-	        				e.printStackTrace();
+	                    	System.out.println("finihed writing to sftp"+sftpPath);	                        	                        
+	                    } catch (IOException e) {
+	                    	setResponseKO(response, "error on completion", e);
 	        				Mono.error(e);
+	                    } catch (Exception e) {
+	                    	setResponseKO(response, "error on completion", e);
+	        				Mono.error(e);
+						} finally {
+							if (!transferCondition.canCloseOnComplete()) {
+								transferCondition.onTaskCompleted();
+							}
 						}
 
 	            }).doOnError(t -> {
@@ -135,32 +157,44 @@ public class FileServiceImpl implements FileService {
 	                    fileChannel.close();
 	                } catch (IOException ignored) {
 	                }
-    				response.setCode("500");
-    				response.setMessage("error transfering");
-    				ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-    				String json = null;
-    				try {
-    					json = ow.writeValueAsString(response);
-					} catch (JsonProcessingException e1) {
-						e1.printStackTrace();
-					}
-	                // take last, map to a status string
-	            }).last().map(dataBuffer -> filePart.filename() + " " + (errorFlag.get() ? "error" : "uploaded"));
+    				setResponseKO(response, "error transfering", t);
+	            }).last().map(dataBuffer -> {
+	            	boolean done = false;
+	            	while(!done && !transferCondition.canCloseOnComplete()) {
+	            		try {
+							Thread.currentThread().sleep(1000);
+						} catch (InterruptedException e) {
+							done = true;
+							setResponseKO(response, filePart.filename() + " error", e);
+						}
+	            	}
+	            	if(errorFlag.get()) {
+	            		setResponseKO(response, filePart.filename() + " error", null);
+	            	} else {
+	            		setResponseOK(response, filePart.filename() + " uploaded");
+	            	}
+	            	return response;
+	            });
 	        } catch (IOException e) {
-				response.setCode("500");
-				response.setMessage("error opening the file channel");
-				e.printStackTrace();
-				ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-				String json = ow.writeValueAsString(response);
-				return Mono.just(json);
+				return Mono.just(setResponseKO(response, "error opening the file channel", e));
 	        }
 		} catch (Exception e) {
-			response.setCode("500");
-			response.setMessage("Upload Failed");
-			e.printStackTrace();
-			ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-			String json = ow.writeValueAsString(response);
-			return Mono.just(json);
+			return Mono.just(setResponseKO(response, "Upload Failed", e));
 		}
+	}
+	private ResponseDTO setResponseOK(ResponseDTO response, String message) {
+		if (response.getCode()==null)
+			response.setCode("200");
+		if (response.getMessage()==null)
+			response.setMessage(message);
+		return response;
+	}
+	private ResponseDTO setResponseKO(ResponseDTO response, String message, Throwable e) {
+		if (response.getCode()==null)
+			response.setCode("500");
+		if (response.getMessage()==null)
+			response.setMessage(message + e!=null?" : " + e.getMessage() : "");
+		if(e!=null) e.printStackTrace();
+		return response;
 	}
 }
