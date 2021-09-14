@@ -130,11 +130,10 @@ public class FileServiceImpl implements FileService {
 	                    	System.out.println("closing after complete");
 	                        fileChannel.close();
 	                        
-	            			String fileName = filePart.filename();
-	            			File f = new File(fileName);
-	                    	System.out.println("reading from " + fileName);
+	            			File f = new File(localServerFilepath);
+	                    	System.out.println("reading from " + localServerFilepath);
         					InputStream inputStream = new FileInputStream(f);
-	            			String sftpPath = config.getSftpFolder().concat("/").concat(fileName);
+	            			String sftpPath = config.getSftpFolder().concat("/").concat(filename);
 	                    	System.out.println("writing to sftp "+sftpPath);
 	            			sftp.sftpPutFromStream(inputStream, sftpPath);
 	                    	System.out.println("finihed writing to sftp"+sftpPath);	                        	                        
