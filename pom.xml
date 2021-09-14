@@ -93,6 +93,20 @@
 			<version>2.9.2</version>
 		</dependency>
 
+        <!-- Database testing -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+
+        <!-- sftp -->
+        <!-- https://mvnrepository.com/artifact/com.jcraft/jsch -->
+        <dependency>
+            <groupId>com.jcraft</groupId>
+            <artifactId>jsch</artifactId>
+            <version>0.1.55</version>
+        </dependency>
+        
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

@@ -31,11 +31,12 @@ public class City implements Serializable {
 	protected City() {
 	}
 
-	public City(String name, String country, String state) {
+	public City(String name, String country, String state, String map) {
 		super();
 		this.name = name;
 		this.country = country;
 		this.state = state;
+		this.map = map;
 	}
 
 	public String getName() {

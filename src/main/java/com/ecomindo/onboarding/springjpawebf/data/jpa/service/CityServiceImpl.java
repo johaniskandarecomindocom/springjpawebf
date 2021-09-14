@@ -62,9 +62,9 @@ class CityServiceImpl implements CityService {
 	}
 	
 	@Override
-	public City insert(String name, String country, String state) {
+	public City insert(String name, String country, String state, String map) {
 		try {
-			City city = this.cityRepository.save(new City(name, country, state));
+			City city = this.cityRepository.save(new City(name, country, state, map));
 			return city;
 		} catch (Exception e) {
 			throw e;

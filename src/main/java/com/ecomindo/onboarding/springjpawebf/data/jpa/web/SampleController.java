@@ -12,6 +12,8 @@ import com.ecomindo.onboarding.springjpawebf.data.jpa.domain.City;
 import com.ecomindo.onboarding.springjpawebf.data.jpa.dto.ResponseDTO;
 import com.ecomindo.onboarding.springjpawebf.data.jpa.service.CityService;
 
+import reactor.core.publisher.Mono;
+
 @Controller
 public class SampleController {
 
@@ -39,10 +41,12 @@ public class SampleController {
 	}
 	
 	@PostMapping("/insert")
+	@ResponseBody
+	@Transactional()
 	public ResponseDTO insert(@RequestBody City city) {
 		ResponseDTO response = new ResponseDTO();
 		try {
-			City saved = cityService.insert(city.getName(), city.getCountry(), city.getState());
+			City saved = cityService.insert(city.getName(), city.getCountry(), city.getState(), city.getMap());
 			
 			response.setCode("200");
 			response.setMessage("Insert Success");
