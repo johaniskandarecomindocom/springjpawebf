@@ -20,14 +20,14 @@ public class JobInsertData2Service implements Job {
 	@Override
 	public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
 		try {
-			logger.info("Executing Job with key {}", jobExecutionContext.getJobDetail().getKey());
+//			logger.info("Executing Job with key {}", jobExecutionContext.getJobDetail().getKey());
 			
 			String name = String.format("name1");
 			String country = String.format("country1");
 			String state = String.format("state1");
 			String map = String.format("map1");
 
-			cityService.insert(name, country, state, map);
+//			cityService.insert(name, country, state, map);
 		} catch (Exception e) {
 			logger.error("Failed to send insert.", e);
 			throw e;

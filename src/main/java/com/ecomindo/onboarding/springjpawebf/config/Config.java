@@ -26,7 +26,26 @@ public class Config {
 	@Value("${spring.custom.sftpServerfolder}")
 	private String sftpServerfolder;
 	
-	public String getSftpHost() {
+
+    @Value("${spring.custom.redis.host}")
+    private String redisHost;
+
+    @Value("${spring.custom.redis.port}")
+    private Integer redisPort;
+
+    @Value("${spring.custom.redis.password}")
+    private String redisPassword;
+
+    @Value("${spring.custom.redis.database}")
+    private Integer redisDatabase;
+
+    @Value(value = "${spring.custom.kafka.bootstrapAddress}")
+    private String kafkaBootstrapAddress;
+
+    @Value(value = "${spring.custom.kafka.topic}")
+    private String kafkaTopic;
+
+    public String getSftpHost() {
 		return sftpHost;
 	}
 
@@ -69,5 +88,53 @@ public class Config {
 	public String getSftpServerfolder() {
 		return sftpServerfolder;
 	}
+
+    public String getRedisHost() {
+        return redisHost;
+    }
+
+    public void setRedisHost(String redisHost) {
+        this.redisHost = redisHost;
+    }
+
+    public Integer getRedisPort() {
+        return redisPort;
+    }
+
+    public void setRedisPort(Integer redisPort) {
+        this.redisPort = redisPort;
+    }
+
+    public String getRedisPassword() {
+        return redisPassword;
+    }
+
+    public void setRedisPassword(String redisPassword) {
+        this.redisPassword = redisPassword;
+    }
+
+    public Integer getRedisDatabase() {
+        return redisDatabase;
+    }
+
+    public void setRedisDatabase(Integer redisDatabase) {
+        this.redisDatabase = redisDatabase;
+    }
+
+    public String getKafkaBootstrapAddress() {
+        return kafkaBootstrapAddress;
+    }
+
+    public void setKafkaBootstrapAddress(String kafkaBootstrapAddress) {
+        this.kafkaBootstrapAddress = kafkaBootstrapAddress;
+    }
+
+    public String getKafkaTopic() {
+        return kafkaTopic;
+    }
+
+    public void setKafkaTopic(String kafkaTopic) {
+        this.kafkaTopic = kafkaTopic;
+    }
 
 }

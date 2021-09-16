@@ -20,7 +20,7 @@ public class JobInsertDataService extends QuartzJobBean {
 	protected void executeInternal(JobExecutionContext jobExecutionContext) throws JobExecutionException {
 		try {
 
-			logger.info("Executing Job with key {}", jobExecutionContext.getJobDetail().getKey());
+//			logger.info("Executing Job with key {}", jobExecutionContext.getJobDetail().getKey());
 
 			JobDataMap jobDataMap = jobExecutionContext.getMergedJobDataMap();
 			String name = jobDataMap.getString("name");
@@ -28,7 +28,7 @@ public class JobInsertDataService extends QuartzJobBean {
 			String state = jobDataMap.getString("state");
 			String map = jobDataMap.getString("map");
 
-			cityService.insert(name, country, state, map);
+//			cityService.insert(name, country, state, map);
 		} catch (Exception e) {
 			logger.error("Failed to send insert.", e);
 			throw e;
